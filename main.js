@@ -1,7 +1,8 @@
 import { scales, noteFrequencies, getHarmonicCircle } from './scales.js';
 
 let appState = {
-  xp: parseInt(localStorage.getItem('piano_xp')) || 0,
+  unlockedScaleIndex: parseInt(localStorage.getItem('piano_unlocked_scales')) || 0,
+  unlockedChordIndex: parseInt(localStorage.getItem('piano_unlocked_chords')) || 0,
   notation: localStorage.getItem('piano_notation') || 'latin',
   activeTab: 'scales',
   scalesView: 'menu',
@@ -38,35 +39,6 @@ function playNoteSound(noteName) {
   gainNode.connect(audioCtx.destination);
   oscillator.start();
   oscillator.stop(audioCtx.currentTime + 1.5);
-}
-
-function calculateLevel(xp) {
-  return Math.floor(Math.sqrt(xp / 100)) + 1;
-}
-
-function getLevelTitle(level) {
-  if (level < 3) return "Principiante";
-  if (level < 6) return "Aprendiz";
-  if (level < 10) return "Intermedio";
-  if (level < 15) return "Avanzado";
-  if (level < 20) return "Virtuoso";
-  return "Maestro";
-}
-
-function getXPForNextLevel(level) {
-  return Math.pow(level, 2) * 100;
-}
-
-function addXP(amount) {
-  appState.xp += amount;
-  localStorage.setItem('piano_xp', appState.xp);
-  renderHeader();
-  
-  const popup = document.createElement('div');
-  popup.className = 'xp-popup';
-  popup.textContent = `+${amount} XP`;
-  document.body.appendChild(popup);
-  setTimeout(() => popup.remove(), 1500);
 }
 
 const latinToAnglo = {
@@ -135,28 +107,16 @@ function renderApp() {
 function renderHeader() {
   const header = document.getElementById('app-header');
   if(!header) return;
-  const level = calculateLevel(appState.xp);
-  const title = getLevelTitle(level);
-  const nextXP = getXPForNextLevel(level);
-  const prevXP = getXPForNextLevel(level - 1);
-  const progress = Math.min(100, Math.max(0, ((appState.xp - prevXP) / (nextXP - prevXP)) * 100));
   
   header.innerHTML = `
     <div class="profile-info">
       <div class="avatar">J</div>
-      <div class="xp-container">
-        <div class="level-text">Nivel ${level} <span style="color: var(--text-muted); font-size: 0.65rem; font-weight: 500; margin-left: 4px;">• ${title}</span></div>
-        <div class="xp-bar-bg">
-          <div class="xp-bar-fill" style="width: ${progress}%"></div>
-        </div>
-      </div>
     </div>
     <div style="display: flex; align-items: center; gap: 1rem;">
       <button class="btn-icon" id="btn-toggle-notation" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);" title="Alternar Notación">
         <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>
         <span style="font-weight: bold; letter-spacing: 0.5px;">C ↔ DO</span>
       </button>
-      <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">${appState.xp} XP</div>
     </div>
   `;
 
@@ -198,10 +158,8 @@ function renderContent() {
 // MODO ESCALAS
 // ========================
 function renderScalesMenu(container) {
-  const level = calculateLevel(appState.xp);
-  
   const cardsHtml = scales.map((scale, index) => {
-    const isUnlocked = index < level;
+    const isUnlocked = index <= appState.unlockedScaleIndex;
     
     if (isUnlocked) {
       return `
@@ -215,7 +173,7 @@ function renderScalesMenu(container) {
         <div class="level-card locked">
           <svg class="icon-lock" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg>
           <div class="scale-name">${translateNote(scale.name)}</div>
-          <div class="req-level">Desbloquea en Nivel ${index + 1}</div>
+          <div class="req-level">Completa anterior para desbloquear</div>
         </div>
       `;
     }
@@ -290,8 +248,7 @@ function renderScalesPractice(container) {
   });
 
   document.getElementById('btn-next').addEventListener('click', () => {
-    const level = calculateLevel(appState.xp);
-    if (appState.currentScaleIndex + 1 < scales.length && (appState.currentScaleIndex + 1) < level) {
+    if (appState.currentScaleIndex + 1 < scales.length && (appState.currentScaleIndex + 1) <= appState.unlockedScaleIndex) {
       appState.currentScaleIndex++;
       appState.userSequence = [];
       renderContent();
@@ -318,13 +275,17 @@ function handleNotePress(note, element, scale) {
     appState.userSequence.push(targetNote);
     
     if (appState.userSequence.length === scale.notes.length) {
-      document.getElementById('feedback').innerHTML = `<span class="success">¡Excelente! +50 XP</span>`;
-      addXP(50);
+      document.getElementById('feedback').innerHTML = `<span class="success">¡Excelente!</span>`;
+      
+      // Advance unlock progress if needed
+      if (appState.currentScaleIndex === appState.unlockedScaleIndex) {
+        appState.unlockedScaleIndex++;
+        localStorage.setItem('piano_unlocked_scales', appState.unlockedScaleIndex);
+      }
       
       const btnNext = document.getElementById('btn-next');
-      const level = calculateLevel(appState.xp);
       
-      if (appState.currentScaleIndex + 1 < scales.length && (appState.currentScaleIndex + 1) < level) {
+      if (appState.currentScaleIndex + 1 < scales.length && (appState.currentScaleIndex + 1) <= appState.unlockedScaleIndex) {
          btnNext.textContent = 'Siguiente Escala';
       } else {
          btnNext.textContent = 'Volver al Menú';
@@ -353,10 +314,8 @@ function handleNotePress(note, element, scale) {
 // MODO CÍRCULOS
 // ========================
 function renderChordsMenu(container) {
-  const level = calculateLevel(appState.xp);
-  
   const cardsHtml = scales.map((scale, index) => {
-    const isUnlocked = index < level;
+    const isUnlocked = index <= appState.unlockedChordIndex;
     
     if (isUnlocked) {
       return `
@@ -370,7 +329,7 @@ function renderChordsMenu(container) {
         <div class="level-card locked">
           <svg class="icon-lock" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg>
           <div class="scale-name">${translateNote(scale.name)}</div>
-          <div class="req-level">Desbloquea en Nivel ${index + 1}</div>
+          <div class="req-level">Completa anterior para desbloquear</div>
         </div>
       `;
     }
@@ -453,8 +412,7 @@ function renderChordsPractice(container) {
   });
 
   document.getElementById('btn-next').addEventListener('click', () => {
-    const level = calculateLevel(appState.xp);
-    if (appState.currentScaleIndex + 1 < scales.length && (appState.currentScaleIndex + 1) < level) {
+    if (appState.currentScaleIndex + 1 < scales.length && (appState.currentScaleIndex + 1) <= appState.unlockedChordIndex) {
       appState.currentScaleIndex++;
       appState.userSequence = [];
       renderContent();
@@ -490,14 +448,18 @@ function handleChordPress(chordName, element, circle) {
     element.classList.add('hidden');
     
     if (appState.userSequence.length === circle.length) {
-      document.getElementById('feedback').innerHTML = `<span class="success">¡Brillante! +75 XP</span>`;
-      addXP(75);
+      document.getElementById('feedback').innerHTML = `<span class="success">¡Excelente!</span>`;
+      
+      // Advance unlock progress if needed
+      if (appState.currentScaleIndex === appState.unlockedChordIndex) {
+        appState.unlockedChordIndex++;
+        localStorage.setItem('piano_unlocked_chords', appState.unlockedChordIndex);
+      }
       
       document.getElementById('chords-grid-container').classList.add('hidden');
       const btnNext = document.getElementById('btn-next');
-      const level = calculateLevel(appState.xp);
       
-      if (appState.currentScaleIndex + 1 < scales.length && (appState.currentScaleIndex + 1) < level) {
+      if (appState.currentScaleIndex + 1 < scales.length && (appState.currentScaleIndex + 1) <= appState.unlockedChordIndex) {
          btnNext.textContent = 'Siguiente Círculo';
       } else {
          btnNext.textContent = 'Volver al Menú';
