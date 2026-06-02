@@ -9,7 +9,7 @@ let appState = {
   chordsView: 'menu',
   currentScaleIndex: 0,
   userSequence: [],
-  difficulty: null,
+  difficulty: localStorage.getItem('piano_difficulty') ? parseInt(localStorage.getItem('piano_difficulty')) : null,
   timerInterval: null
 };
 
@@ -309,6 +309,11 @@ function renderScalesPractice(container) {
       btn.addEventListener('click', (e) => {
         const time = e.currentTarget.getAttribute('data-time');
         appState.difficulty = time === "null" ? null : parseInt(time);
+        if (appState.difficulty === null) {
+          localStorage.removeItem('piano_difficulty');
+        } else {
+          localStorage.setItem('piano_difficulty', appState.difficulty);
+        }
         popup.remove();
         stopTimer();
         appState.userSequence = [];
