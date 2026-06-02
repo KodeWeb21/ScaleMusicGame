@@ -257,7 +257,12 @@ function renderScalesMenu(container) {
 
   container.innerHTML = `
     <div class="glass-card animate-enter">
-      <div class="tag blue">Modo Escalas</div>
+      <div class="header-actions">
+        <div class="tag blue" style="margin: 0;">Modo Escalas</div>
+        <button class="tag blue" style="margin: 0; cursor: pointer; border: none; font-family: inherit; background: rgba(0, 229, 255, 0.15); color: #80F2FF; font-weight: bold; font-size: 0.8rem; padding: 6px 14px;" id="btn-difficulty-menu-scales">
+          ${appState.difficulty ? `⏳ ${appState.difficulty}s` : 'Práctica'}
+        </button>
+      </div>
       <h2>Selecciona tu Nivel</h2>
       <p class="text-muted" style="font-size: 0.85rem; color: var(--text-secondary);">Sube de nivel practicando para desbloquear más escalas.</p>
       
@@ -266,6 +271,8 @@ function renderScalesMenu(container) {
       </div>
     </div>
   `;
+
+  document.getElementById('btn-difficulty-menu-scales').addEventListener('click', showDifficultyPopup);
 
   container.querySelectorAll('.level-card.unlocked').forEach(card => {
     card.addEventListener('click', (e) => {
@@ -427,7 +434,12 @@ function renderChordsMenu(container) {
 
   container.innerHTML = `
     <div class="glass-card animate-enter">
-      <div class="tag purple">Círculos Armónicos</div>
+      <div class="header-actions">
+        <div class="tag purple" style="margin: 0;">Círculos Armónicos</div>
+        <button class="tag purple" style="margin: 0; cursor: pointer; border: none; font-family: inherit; background: rgba(176, 38, 255, 0.15); color: #D68FFF; font-weight: bold; font-size: 0.8rem; padding: 6px 14px;" id="btn-difficulty-menu-chords">
+          ${appState.difficulty ? `⏳ ${appState.difficulty}s` : 'Práctica'}
+        </button>
+      </div>
       <h2>Selecciona tu Nivel</h2>
       <p class="text-muted" style="font-size: 0.85rem; color: var(--text-secondary);">Desbloquea más círculos armónicos subiendo de nivel.</p>
       
@@ -436,6 +448,8 @@ function renderChordsMenu(container) {
       </div>
     </div>
   `;
+
+  document.getElementById('btn-difficulty-menu-chords').addEventListener('click', showDifficultyPopup);
 
   container.querySelectorAll('.level-card.unlocked').forEach(card => {
     card.addEventListener('click', (e) => {
