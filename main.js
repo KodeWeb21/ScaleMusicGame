@@ -33,12 +33,49 @@ function startTimer(seconds) {
       const feedback = document.getElementById('feedback');
       if (feedback) feedback.innerHTML = `<span class="error">Se acabó el tiempo.</span>`;
       appState.userSequence = [];
-      document.querySelectorAll('.slot').forEach(slot => {
-        slot.textContent = '';
-        slot.classList.remove('filled');
-      });
+      renderContent();
+      const newFeedback = document.getElementById('feedback');
+      if (newFeedback) newFeedback.innerHTML = `<span class="error">Se acabó el tiempo.</span>`;
     }
   }, 1000);
+}
+
+function showDifficultyPopup() {
+  const popup = document.createElement('div');
+  popup.className = 'difficulty-popup';
+  popup.innerHTML = `
+    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 100;">
+      <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: -1;" onclick="this.closest('.difficulty-popup').remove()"></div>
+      <div class="glass-card animate-enter" style="max-width: 300px; width: 90%; text-align: center; box-shadow: 0 0 50px rgba(0,0,0,0.8); margin: 0;">
+        <h2 style="margin-bottom: 1.5rem;">Selecciona Dificultad</h2>
+        <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+          <button class="btn-primary" data-time="null" style="margin: 0; background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));">Práctica (Sin tiempo)</button>
+          <button class="btn-primary" data-time="15" style="margin: 0; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); box-shadow: 0 4px 15px rgba(0, 229, 255, 0.3);">Fácil (15s)</button>
+          <button class="btn-primary" data-time="10" style="margin: 0; background: linear-gradient(135deg, var(--accent-gold), var(--accent-purple)); box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);">Medio (10s)</button>
+          <button class="btn-primary" data-time="5" style="margin: 0; background: linear-gradient(135deg, var(--error), var(--accent-purple)); box-shadow: 0 4px 15px rgba(255, 51, 102, 0.3);">Difícil (5s)</button>
+        </div>
+        <button class="btn-icon" style="margin: 1.5rem auto 0; padding: 8px 16px;" onclick="this.closest('.difficulty-popup').remove()">Cancelar</button>
+      </div>
+    </div>
+  `;
+  
+  popup.querySelectorAll('.btn-primary').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const time = e.currentTarget.getAttribute('data-time');
+      appState.difficulty = time === "null" ? null : parseInt(time);
+      if (appState.difficulty === null) {
+        localStorage.removeItem('piano_difficulty');
+      } else {
+        localStorage.setItem('piano_difficulty', appState.difficulty);
+      }
+      popup.remove();
+      stopTimer();
+      appState.userSequence = [];
+      renderContent();
+    });
+  });
+  
+  document.body.appendChild(popup);
 }
 
 function stopTimer() {
@@ -286,43 +323,7 @@ function renderScalesPractice(container) {
     renderContent();
   });
 
-  document.getElementById('btn-difficulty').addEventListener('click', () => {
-    const popup = document.createElement('div');
-    popup.className = 'difficulty-popup';
-    popup.innerHTML = `
-      <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 100;">
-        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: -1;" onclick="this.closest('.difficulty-popup').remove()"></div>
-        <div class="glass-card animate-enter" style="max-width: 300px; width: 90%; text-align: center; box-shadow: 0 0 50px rgba(0,0,0,0.8); margin: 0;">
-          <h2 style="margin-bottom: 1.5rem;">Selecciona Dificultad</h2>
-          <div style="display: flex; flex-direction: column; gap: 0.8rem;">
-            <button class="btn-primary" data-time="null" style="margin: 0; background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));">Práctica (Sin tiempo)</button>
-            <button class="btn-primary" data-time="15" style="margin: 0; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); box-shadow: 0 4px 15px rgba(0, 229, 255, 0.3);">Fácil (15s)</button>
-            <button class="btn-primary" data-time="10" style="margin: 0; background: linear-gradient(135deg, var(--accent-gold), var(--accent-purple)); box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);">Medio (10s)</button>
-            <button class="btn-primary" data-time="5" style="margin: 0; background: linear-gradient(135deg, var(--error), var(--accent-purple)); box-shadow: 0 4px 15px rgba(255, 51, 102, 0.3);">Difícil (5s)</button>
-          </div>
-          <button class="btn-icon" style="margin: 1.5rem auto 0; padding: 8px 16px;" onclick="this.closest('.difficulty-popup').remove()">Cancelar</button>
-        </div>
-      </div>
-    `;
-    
-    popup.querySelectorAll('.btn-primary').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const time = e.currentTarget.getAttribute('data-time');
-        appState.difficulty = time === "null" ? null : parseInt(time);
-        if (appState.difficulty === null) {
-          localStorage.removeItem('piano_difficulty');
-        } else {
-          localStorage.setItem('piano_difficulty', appState.difficulty);
-        }
-        popup.remove();
-        stopTimer();
-        appState.userSequence = [];
-        renderContent();
-      });
-    });
-    
-    document.body.appendChild(popup);
-  });
+  document.getElementById('btn-difficulty').addEventListener('click', showDifficultyPopup);
 
   document.querySelectorAll('.key').forEach(key => {
     key.addEventListener('click', (e) => {
@@ -466,9 +467,14 @@ function renderChordsPractice(container) {
           <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
           Menú
         </button>
-        <div class="tag purple" style="margin: 0;">Círculos</div>
+        <button class="tag purple" style="margin: 0; cursor: pointer; border: none; font-family: inherit; background: rgba(176, 38, 255, 0.15); color: #D68FFF; font-weight: bold; font-size: 0.8rem; padding: 6px 14px;" id="btn-difficulty-chords">
+          ${appState.difficulty ? `⏳ ${appState.difficulty}s` : 'Práctica'}
+        </button>
       </div>
       <h2>Círculo de ${translateNote(scale.name)}</h2>
+      <div id="timer-display" style="text-align: center; font-size: 1.2rem; font-weight: bold; color: var(--accent-gold); margin-bottom: 0.5rem; min-height: 1.5rem;">
+        ${appState.difficulty ? `⏳ ${appState.difficulty}s` : ''}
+      </div>
       
       <div class="slots-container">
         ${circle.map(c => `
@@ -496,9 +502,12 @@ function renderChordsPractice(container) {
   `;
 
   document.getElementById('btn-back-menu-chords').addEventListener('click', () => {
+    stopTimer();
     appState.chordsView = 'menu';
     renderContent();
   });
+
+  document.getElementById('btn-difficulty-chords').addEventListener('click', showDifficultyPopup);
 
   document.getElementById('btn-next').addEventListener('click', () => {
     if (appState.currentScaleIndex + 1 < scales.length && (appState.currentScaleIndex + 1) <= appState.unlockedChordIndex) {
@@ -520,6 +529,10 @@ function renderChordsPractice(container) {
 }
 
 function handleChordPress(chordName, element, circle) {
+  if (appState.userSequence.length === 0 && appState.difficulty && !appState.timerInterval) {
+    startTimer(appState.difficulty);
+  }
+
   const rootNote = chordName.split(' ')[0];
   playNoteSound(rootNote);
   
@@ -537,6 +550,7 @@ function handleChordPress(chordName, element, circle) {
     element.classList.add('hidden');
     
     if (appState.userSequence.length === circle.length) {
+      stopTimer();
       document.getElementById('feedback').innerHTML = `<span class="success">¡Excelente!</span>`;
       
       // Advance unlock progress if needed
@@ -562,6 +576,7 @@ function handleChordPress(chordName, element, circle) {
       }, 2000);
     }
   } else {
+    stopTimer();
     showErrorToast(translateNote(targetChord));
     document.getElementById('feedback').innerHTML = `<span class="error">Se reinició la secuencia.</span>`;
     
