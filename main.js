@@ -8,13 +8,49 @@ let appState = {
   scalesView: 'menu',
   chordsView: 'menu',
   currentScaleIndex: 0,
-  userSequence: []
+  userSequence: [],
+  difficulty: null,
+  timerInterval: null
 };
 
 const ALL_NOTES = ["DO", "DO#", "RE", "RE#", "MI", "FA", "FA#", "SOL", "SOL#", "LA", "LA#", "SI", "DO(alt)"];
 
 let audioCtx = null;
 const appDiv = document.getElementById('app');
+
+function startTimer(seconds) {
+  stopTimer();
+  let timeLeft = seconds;
+  const timerDisplay = document.getElementById('timer-display');
+  if (timerDisplay) timerDisplay.textContent = `⏳ ${timeLeft}s`;
+  
+  appState.timerInterval = setInterval(() => {
+    timeLeft--;
+    if (timerDisplay) timerDisplay.textContent = `⏳ ${timeLeft}s`;
+    if (timeLeft <= 0) {
+      stopTimer();
+      showErrorToast("Tiempo agotado");
+      const feedback = document.getElementById('feedback');
+      if (feedback) feedback.innerHTML = `<span class="error">Se acabó el tiempo.</span>`;
+      appState.userSequence = [];
+      document.querySelectorAll('.slot').forEach(slot => {
+        slot.textContent = '';
+        slot.classList.remove('filled');
+      });
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (appState.timerInterval) {
+    clearInterval(appState.timerInterval);
+    appState.timerInterval = null;
+  }
+  const timerDisplay = document.getElementById('timer-display');
+  if (timerDisplay && appState.userSequence.length === 0) {
+    timerDisplay.textContent = appState.difficulty ? `⏳ ${appState.difficulty}s` : '';
+  }
+}
 
 function initAudio() {
   if (!audioCtx) {
@@ -90,6 +126,7 @@ function renderApp() {
   
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', (e) => {
+      if (typeof stopTimer === 'function') stopTimer();
       appState.activeTab = e.currentTarget.getAttribute('data-tab');
       appState.scalesView = 'menu';
       appState.chordsView = 'menu';
@@ -110,7 +147,9 @@ function renderHeader() {
   
   header.innerHTML = `
     <div class="profile-info">
-      <div class="avatar">J</div>
+      <div class="avatar" style="overflow: hidden;">
+        <img src="piano_avatar.png" alt="Piano" style="width: 100%; height: 100%; object-fit: cover;">
+      </div>
     </div>
     <div style="display: flex; align-items: center; gap: 1rem;">
       <button class="btn-icon" id="btn-toggle-notation" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);" title="Alternar Notación">
@@ -211,9 +250,14 @@ function renderScalesPractice(container) {
           <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
           Menú
         </button>
-        <div class="tag blue" style="margin: 0;">Práctica</div>
+        <button class="tag blue" style="margin: 0; cursor: pointer; border: none; font-family: inherit; background: rgba(0, 229, 255, 0.15); color: #80F2FF; font-weight: bold; font-size: 0.8rem; padding: 6px 14px;" id="btn-difficulty">
+          ${appState.difficulty ? `⏳ ${appState.difficulty}s` : 'Práctica'}
+        </button>
       </div>
       <h2>Escala de ${translateNote(scale.name)}</h2>
+      <div id="timer-display" style="text-align: center; font-size: 1.2rem; font-weight: bold; color: var(--accent-gold); margin-bottom: 0.5rem; min-height: 1.5rem;">
+        ${appState.difficulty ? `⏳ ${appState.difficulty}s` : ''}
+      </div>
       
       <div class="slots-container">
         ${scale.notes.map(() => `<div class="slot"></div>`).join('')}
@@ -237,8 +281,42 @@ function renderScalesPractice(container) {
   `;
 
   document.getElementById('btn-back-menu').addEventListener('click', () => {
+    stopTimer();
     appState.scalesView = 'menu';
     renderContent();
+  });
+
+  document.getElementById('btn-difficulty').addEventListener('click', () => {
+    const popup = document.createElement('div');
+    popup.className = 'difficulty-popup';
+    popup.innerHTML = `
+      <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 100;">
+        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: -1;" onclick="this.closest('.difficulty-popup').remove()"></div>
+        <div class="glass-card animate-enter" style="max-width: 300px; width: 90%; text-align: center; box-shadow: 0 0 50px rgba(0,0,0,0.8); margin: 0;">
+          <h2 style="margin-bottom: 1.5rem;">Selecciona Dificultad</h2>
+          <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+            <button class="btn-primary" data-time="null" style="margin: 0; background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));">Práctica (Sin tiempo)</button>
+            <button class="btn-primary" data-time="15" style="margin: 0; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); box-shadow: 0 4px 15px rgba(0, 229, 255, 0.3);">Fácil (15s)</button>
+            <button class="btn-primary" data-time="10" style="margin: 0; background: linear-gradient(135deg, var(--accent-gold), var(--accent-purple)); box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);">Medio (10s)</button>
+            <button class="btn-primary" data-time="5" style="margin: 0; background: linear-gradient(135deg, var(--error), var(--accent-purple)); box-shadow: 0 4px 15px rgba(255, 51, 102, 0.3);">Difícil (5s)</button>
+          </div>
+          <button class="btn-icon" style="margin: 1.5rem auto 0; padding: 8px 16px;" onclick="this.closest('.difficulty-popup').remove()">Cancelar</button>
+        </div>
+      </div>
+    `;
+    
+    popup.querySelectorAll('.btn-primary').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const time = e.currentTarget.getAttribute('data-time');
+        appState.difficulty = time === "null" ? null : parseInt(time);
+        popup.remove();
+        stopTimer();
+        appState.userSequence = [];
+        renderContent();
+      });
+    });
+    
+    document.body.appendChild(popup);
   });
 
   document.querySelectorAll('.key').forEach(key => {
@@ -260,6 +338,10 @@ function renderScalesPractice(container) {
 }
 
 function handleNotePress(note, element, scale) {
+  if (appState.userSequence.length === 0 && appState.difficulty && !appState.timerInterval) {
+    startTimer(appState.difficulty);
+  }
+
   playNoteSound(note);
   
   element.classList.add('active');
@@ -275,6 +357,7 @@ function handleNotePress(note, element, scale) {
     appState.userSequence.push(targetNote);
     
     if (appState.userSequence.length === scale.notes.length) {
+      stopTimer();
       document.getElementById('feedback').innerHTML = `<span class="success">¡Excelente!</span>`;
       
       // Advance unlock progress if needed
@@ -299,6 +382,7 @@ function handleNotePress(note, element, scale) {
       }, 2000);
     }
   } else {
+    stopTimer();
     showErrorToast(translateNote(targetNote));
     document.getElementById('feedback').innerHTML = `<span class="error">Se reinició la secuencia.</span>`;
     
