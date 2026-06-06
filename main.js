@@ -403,6 +403,7 @@ function renderScalesPractice(container) {
 }
 
 function handleNotePress(note, element, scale) {
+  if(appState.userSequence.length >= scale.notes.length) return;
   if (appState.userSequence.length === 0 && appState.difficulty && !appState.timerInterval) {
     startTimer(appState.difficulty);
   }
