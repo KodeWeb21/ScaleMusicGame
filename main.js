@@ -1,4 +1,4 @@
-import { scales, noteFrequencies, getHarmonicCircle } from './scales.js';
+import { scales, getHarmonicCircle } from './scales.js';
 import * as Tone from 'tone';
 
 let appState = {
@@ -77,7 +77,7 @@ function startTimer(seconds) {
   let timeLeft = seconds;
   const timerDisplay = document.getElementById('timer-display');
   if (timerDisplay) timerDisplay.textContent = `⏳ ${timeLeft}s`;
-  
+
   appState.timerInterval = setInterval(() => {
     timeLeft--;
     if (timerDisplay) timerDisplay.textContent = `⏳ ${timeLeft}s`;
@@ -112,7 +112,7 @@ function showDifficultyPopup() {
       </div>
     </div>
   `;
-  
+
   popup.querySelectorAll('.btn-primary').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const time = e.currentTarget.getAttribute('data-time');
@@ -128,7 +128,7 @@ function showDifficultyPopup() {
       renderContent();
     });
   });
-  
+
   document.body.appendChild(popup);
 }
 
@@ -184,7 +184,7 @@ function translateNote(str) {
 function showErrorToast(expected) {
   // Remove existing toasts to avoid spam
   document.querySelectorAll('.error-toast').forEach(t => t.remove());
-  
+
   const toast = document.createElement('div');
   toast.className = 'error-toast';
   toast.textContent = `❌ Esperaba: ${expected}`;
@@ -212,7 +212,7 @@ function renderApp() {
       </div>
     </nav>
   `;
-  
+
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', (e) => {
       if (typeof stopTimer === 'function') stopTimer();
@@ -232,8 +232,8 @@ function renderApp() {
 
 function renderHeader() {
   const header = document.getElementById('app-header');
-  if(!header) return;
-  
+  if (!header) return;
+
   header.innerHTML = `
     <div class="profile-info">
       <div class="avatar" style="overflow: hidden;">
@@ -288,7 +288,7 @@ function renderContent() {
 function renderScalesMenu(container) {
   const cardsHtml = scales.map((scale, index) => {
     const isUnlocked = index <= appState.unlockedScaleIndex;
-    
+
     if (isUnlocked) {
       return `
         <div class="level-card unlocked" data-index="${index}">
@@ -338,7 +338,7 @@ function renderScalesMenu(container) {
 
 function renderScalesPractice(container) {
   const scale = scales[appState.currentScaleIndex];
-  
+
   container.innerHTML = `
     <div class="glass-card animate-enter" id="game-area">
       <div class="header-actions">
@@ -364,11 +364,11 @@ function renderScalesPractice(container) {
       <div class="keyboard-wrapper">
         <div class="keyboard" id="keyboard">
           ${ALL_NOTES.slice(0, 12).map(note => {
-            const isBlack = note.includes('#');
-            return `<div class="key ${isBlack ? 'black' : 'white'}" data-note="${note}">
+    const isBlack = note.includes('#');
+    return `<div class="key ${isBlack ? 'black' : 'white'}" data-note="${note}">
                       <span class="note-label">${translateNote(note)}</span>
                     </div>`;
-          }).join('')}
+  }).join('')}
         </div>
       </div>
       
@@ -408,38 +408,38 @@ function handleNotePress(note, element, scale) {
   }
 
   playNoteSound(note);
-  
+
   element.classList.add('active');
   setTimeout(() => element.classList.remove('active'), 200);
 
   const targetNote = scale.notes[appState.userSequence.length];
 
-  if (note === targetNote || (note === "DO" && targetNote === "DO" && appState.userSequence.length > 0)) { 
+  if (note === targetNote || (note === "DO" && targetNote === "DO" && appState.userSequence.length > 0)) {
     const slot = document.querySelectorAll('.slot')[appState.userSequence.length];
     slot.textContent = translateNote(targetNote);
     slot.classList.add('filled');
-    
+
     appState.userSequence.push(targetNote);
-    
+
     if (appState.userSequence.length === scale.notes.length) {
       stopTimer();
       document.getElementById('feedback').innerHTML = `<span class="success">¡Excelente!</span>`;
-      
+
       // Advance unlock progress if needed
       if (appState.currentScaleIndex === appState.unlockedScaleIndex) {
         appState.unlockedScaleIndex++;
         localStorage.setItem('piano_unlocked_scales', appState.unlockedScaleIndex);
       }
-      
+
       const btnNext = document.getElementById('btn-next');
-      
+
       if (appState.currentScaleIndex + 1 < scales.length && (appState.currentScaleIndex + 1) <= appState.unlockedScaleIndex) {
-         btnNext.textContent = 'Siguiente Escala';
+        btnNext.textContent = 'Siguiente Escala';
       } else {
-         btnNext.textContent = 'Volver al Menú';
+        btnNext.textContent = 'Volver al Menú';
       }
       btnNext.classList.remove('hidden');
-      
+
       setTimeout(() => {
         if (appState.activeTab === 'scales' && appState.scalesView === 'practice' && appState.userSequence.length === scale.notes.length) {
           btnNext.click();
@@ -450,7 +450,7 @@ function handleNotePress(note, element, scale) {
     stopTimer();
     showErrorToast(translateNote(targetNote));
     document.getElementById('feedback').innerHTML = `<span class="error">Se reinició la secuencia.</span>`;
-    
+
     appState.userSequence = [];
     document.querySelectorAll('.slot').forEach(slot => {
       slot.textContent = '';
@@ -465,7 +465,7 @@ function handleNotePress(note, element, scale) {
 function renderChordsMenu(container) {
   const cardsHtml = scales.map((scale, index) => {
     const isUnlocked = index <= appState.unlockedChordIndex;
-    
+
     if (isUnlocked) {
       return `
         <div class="level-card unlocked" data-index="${index}">
@@ -516,16 +516,16 @@ function renderChordsMenu(container) {
 function renderChordsPractice(container) {
   const scale = scales[appState.currentScaleIndex];
   const circle = getHarmonicCircle(scale.notes);
-  
+
   const distractorScale = scales[(appState.currentScaleIndex + 3) % scales.length];
   const distractorCircle = getHarmonicCircle(distractorScale.notes);
   let options = [...circle, distractorCircle[0], distractorCircle[3], distractorCircle[4]];
-  
+
   const uniqueOptions = new Map();
   options.forEach(c => uniqueOptions.set(c.chord, c));
   options = Array.from(uniqueOptions.values());
   options.sort(() => Math.random() - 0.5);
-  
+
   container.innerHTML = `
     <div class="glass-card animate-enter" id="game-area">
       <div class="header-actions">
@@ -601,7 +601,7 @@ function handleChordPress(chordName, element, circle) {
 
   const rootNote = chordName.split(' ')[0];
   playNoteSound(rootNote);
-  
+
   element.style.transform = 'scale(0.9)';
   setTimeout(() => element.style.transform = '', 150);
 
@@ -611,30 +611,30 @@ function handleChordPress(chordName, element, circle) {
     const slot = document.querySelectorAll('.slot')[appState.userSequence.length];
     slot.innerHTML = translateNote(chordName);
     slot.classList.add('filled');
-    
+
     appState.userSequence.push(chordName);
     element.classList.add('hidden');
-    
+
     if (appState.userSequence.length === circle.length) {
       stopTimer();
       document.getElementById('feedback').innerHTML = `<span class="success">¡Excelente!</span>`;
-      
+
       // Advance unlock progress if needed
       if (appState.currentScaleIndex === appState.unlockedChordIndex) {
         appState.unlockedChordIndex++;
         localStorage.setItem('piano_unlocked_chords', appState.unlockedChordIndex);
       }
-      
+
       document.getElementById('chords-grid-container').classList.add('hidden');
       const btnNext = document.getElementById('btn-next');
-      
+
       if (appState.currentScaleIndex + 1 < scales.length && (appState.currentScaleIndex + 1) <= appState.unlockedChordIndex) {
-         btnNext.textContent = 'Siguiente Círculo';
+        btnNext.textContent = 'Siguiente Círculo';
       } else {
-         btnNext.textContent = 'Volver al Menú';
+        btnNext.textContent = 'Volver al Menú';
       }
       btnNext.classList.remove('hidden');
-      
+
       setTimeout(() => {
         if (appState.activeTab === 'chords' && appState.chordsView === 'practice' && appState.userSequence.length === circle.length) {
           btnNext.click();
@@ -645,13 +645,13 @@ function handleChordPress(chordName, element, circle) {
     stopTimer();
     showErrorToast(translateNote(targetChord));
     document.getElementById('feedback').innerHTML = `<span class="error">Se reinició la secuencia.</span>`;
-    
+
     appState.userSequence = [];
     document.querySelectorAll('.slot').forEach((slot, idx) => {
       slot.innerHTML = `<span class="degree-hint">${circle[idx].degree}</span>`;
       slot.classList.remove('filled');
     });
-    
+
     document.querySelectorAll('.chord-card').forEach(card => card.classList.remove('hidden'));
   }
 }

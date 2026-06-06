@@ -13,21 +13,6 @@ export const scales = [
   { name: "LA#", notes: ["LA#", "DO", "RE", "RE#", "FA", "SOL", "LA", "LA#"] }
 ];
 
-// Frecuencias base (A4 = 440Hz)
-export const noteFrequencies = {
-  "DO": 261.63,
-  "DO#": 277.18,
-  "RE": 293.66,
-  "RE#": 311.13,
-  "MI": 329.63,
-  "FA": 349.23,
-  "FA#": 369.99,
-  "SOL": 392.00,
-  "SOL#": 415.30,
-  "LA": 440.00,
-  "LA#": 466.16,
-  "SI": 493.88
-};
 
 // Círculos Armónicos (I, ii, iii, IV, V, vi, vii°)
 const chordSuffixes = [" Mayor", " menor", " menor", " Mayor", " Mayor", " menor", " dism"];
