@@ -1,4 +1,5 @@
 import { scales, noteFrequencies, getHarmonicCircle } from './scales.js';
+import * as Tone from 'tone';
 
 let appState = {
   unlockedScaleIndex: parseInt(localStorage.getItem('piano_unlocked_scales')) || 0,
@@ -15,7 +16,60 @@ let appState = {
 
 const ALL_NOTES = ["DO", "DO#", "RE", "RE#", "MI", "FA", "FA#", "SOL", "SOL#", "LA", "LA#", "SI", "DO(alt)"];
 
-let audioCtx = null;
+let audioInitialized = false;
+const pianoSampler = new Tone.Sampler({
+  urls: {
+    A0: "A0.mp3",
+    C1: "C1.mp3",
+    "D#1": "Ds1.mp3",
+    "F#1": "Fs1.mp3",
+    A1: "A1.mp3",
+    C2: "C2.mp3",
+    "D#2": "Ds2.mp3",
+    "F#2": "Fs2.mp3",
+    A2: "A2.mp3",
+    C3: "C3.mp3",
+    "D#3": "Ds3.mp3",
+    "F#3": "Fs3.mp3",
+    A3: "A3.mp3",
+    C4: "C4.mp3",
+    "D#4": "Ds4.mp3",
+    "F#4": "Fs4.mp3",
+    A4: "A4.mp3",
+    C5: "C5.mp3",
+    "D#5": "Ds5.mp3",
+    "F#5": "Fs5.mp3",
+    A5: "A5.mp3",
+    C6: "C6.mp3",
+    "D#6": "Ds6.mp3",
+    "F#6": "Fs6.mp3",
+    A6: "A6.mp3",
+    C7: "C7.mp3",
+    "D#7": "Ds7.mp3",
+    "F#7": "Fs7.mp3",
+    A7: "A7.mp3",
+    C8: "C8.mp3"
+  },
+  release: 1,
+  baseUrl: "https://tonejs.github.io/audio/salamander/"
+}).toDestination();
+
+const noteToPitch = {
+  "DO": "C4",
+  "DO#": "C#4",
+  "RE": "D4",
+  "RE#": "D#4",
+  "MI": "E4",
+  "FA": "F4",
+  "FA#": "F#4",
+  "SOL": "G4",
+  "SOL#": "G#4",
+  "LA": "A4",
+  "LA#": "A#4",
+  "SI": "B4",
+  "DO(alt)": "C5"
+};
+
 const appDiv = document.getElementById('app');
 
 function startTimer(seconds) {
@@ -89,29 +143,27 @@ function stopTimer() {
   }
 }
 
-function initAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
+async function initAudio() {
+  if (!audioInitialized) {
+    await Tone.start();
+    audioInitialized = true;
   }
 }
 
 function playNoteSound(noteName) {
-  initAudio();
-  const freq = noteFrequencies[noteName] || 440;
-  const oscillator = audioCtx.createOscillator();
-  const gainNode = audioCtx.createGain();
-  oscillator.type = 'sine';
-  oscillator.frequency.value = freq;
-  gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-  gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
-  gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
-  oscillator.connect(gainNode);
-  gainNode.connect(audioCtx.destination);
-  oscillator.start();
-  oscillator.stop(audioCtx.currentTime + 1.5);
+  if (audioInitialized) {
+    if (pianoSampler.loaded) {
+      const pitch = noteToPitch[noteName] || "C4";
+      pianoSampler.triggerAttackRelease(pitch, "2n");
+    }
+  } else {
+    initAudio().then(() => {
+      if (pianoSampler.loaded) {
+        const pitch = noteToPitch[noteName] || "C4";
+        pianoSampler.triggerAttackRelease(pitch, "2n");
+      }
+    });
+  }
 }
 
 const latinToAnglo = {
